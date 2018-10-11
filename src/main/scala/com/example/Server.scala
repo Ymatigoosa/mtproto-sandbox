@@ -1,12 +1,10 @@
-package sample.stream
+package com.example
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, Materializer}
-import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
 import akka.stream.scaladsl.Tcp
-import akka.util.ByteString
+import com.example.mtproto.ConnectionHandler
 
 import scala.concurrent.ExecutionContext
 import scala.util.Failure
@@ -18,17 +16,19 @@ object Server extends App {
   implicit val ec: ExecutionContext = system.dispatcher
   implicit val m: Materializer = ActorMaterializer()
   val (address, port) = ("127.0.0.1", 6000)
-  server(system, address, port)
+  server(address, port)
 
-  def server(system: ActorSystem, address: String, port: Int): Unit = {
+  def server(address: String, port: Int): Unit = {
 
-    val handler = Sink.foreach[Tcp.IncomingConnection] { conn =>
+    val messagehandler = new ConnectionHandler()
+
+    val sockethandler = Sink.foreach[Tcp.IncomingConnection] { conn =>
       println("Client connected from: " + conn.remoteAddress)
-      conn handleWith Flow[ByteString]
+      conn.handleWith(messagehandler.flow)
     }
 
     val connections = Tcp().bind(address, port)
-    val binding = connections.to(handler).run()
+    val binding = connections.to(sockethandler).run()
 
     binding.onComplete {
       case Success(b) =>

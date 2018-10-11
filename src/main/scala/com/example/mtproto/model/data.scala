@@ -56,7 +56,7 @@ case class ResPQ (
   server_nonce: BitVector,
   pq: String,
   server_public_key_fingerprints: Vector[Long]
-) extends MTProtoRequest
+) extends MTProtoResponse
 
 object ResPQ {
   val header: BitVector = hex"05162463".bits
