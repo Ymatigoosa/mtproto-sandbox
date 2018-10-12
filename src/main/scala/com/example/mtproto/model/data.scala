@@ -3,25 +3,26 @@ package com.example.mtproto.model
 import java.nio.charset.Charset
 
 import scodec._
-import codecs.{bits => cbits, _}
+import scodec.{codecs => C}
 import scodec.bits._
 import scodec.bits.BitVector
 import Common._
+import scodec.codecs.{DiscriminatorCodec, discriminated}
 
 object Common {
   val vectorLong: Codec[Vector[Long]] =
-    discriminated[Vector[Long]].by(cbits(32))
-    .| (hex"1cb5c415".bits){ case i => i}(identity)(vectorOfN(int32L, int64L))
+    discriminated[Vector[Long]].by(C.bits(32))
+    .| (hex"1cb5c415".bits){ case i => i}(identity)(C.vectorOfN(C.int32, C.int64))
 
   val str: Codec[String] =
-    string32L(Charset.forName("UTF-8"))
+    C.string32(Charset.forName("UTF-8"))
 }
 
 sealed trait Message
 
 object Message {
   val codec: DiscriminatorCodec[Message, BitVector] =
-    discriminated[Message].by(cbits(32))
+    C.discriminated[Message].by(C.bits(32))
     .| (ReqPQ.header)             { case i: ReqPQ => i}(identity)(ReqPQ.codec)
     .| (ResPQ.header)             { case i: ResPQ => i}(identity)(ResPQ.codec)
     .| (ReqDHParams.header)       { case i: ReqDHParams => i}(identity)(ReqDHParams.codec)
@@ -35,9 +36,9 @@ case class UnencryptedMessageHeader(auth_key_id: Long, message_id: Long, message
 
 object UnencryptedMessageHeader {
   val codec: Codec[UnencryptedMessageHeader] = (
-      int64L ::
-      int64L ::
-      int32L
+      C.int64 ::
+      C.int64 ::
+      C.int32
     ).as[UnencryptedMessageHeader]
 }
 
@@ -48,7 +49,7 @@ case class ReqPQ(
 object ReqPQ {
   val header: BitVector = hex"60469778".bits
 
-  val codec: Codec[ReqPQ] = cbits(128).as[ReqPQ]
+  val codec: Codec[ReqPQ] = C.bits(128).as[ReqPQ]
 }
 
 case class ResPQ (
@@ -62,8 +63,8 @@ object ResPQ {
   val header: BitVector = hex"05162463".bits
 
   val codec: Codec[ResPQ] = (
-      cbits(128) ::
-      cbits(128) ::
+      C.bits(128) ::
+      C.bits(128) ::
       str ::
       vectorLong
     ).as[ResPQ]
@@ -82,11 +83,11 @@ object ReqDHParams {
   val header: BitVector = hex"d712e4be".bits
 
   val codec: Codec[ReqDHParams] = (
-      cbits(128) ::
-      cbits(128) ::
+      C.bits(128) ::
+      C.bits(128) ::
       str ::
       str ::
-      int64L ::
+      C.int64 ::
       str
     ).as[ReqDHParams]
 }
@@ -101,8 +102,8 @@ object ServerDHParamsOk {
   val header: BitVector = hex"d0e8075c".bits
 
   val codec: Codec[ServerDHParamsOk] = (
-      cbits(128) ::
-      cbits(128) ::
+      C.bits(128) ::
+      C.bits(128) ::
       str
     ).as[ServerDHParamsOk]
 }
